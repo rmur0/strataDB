@@ -36,10 +36,10 @@ typedef struct{
     link_node* tail;
 }doubly_linked_list;
 typedef struct{
-    int capacity; //this should equal 10
+    int capacity; 
     int frame_size;
-    HashEntry *page_table; //Page table -> fixed size maps file path(str) to pointer
-    char *block; //call malloc at boot up and grab 40,000 bytes
+    HashEntry *page_table;
+    char *block; 
     int * free_frame;
     lru_static_hash_map* lru_hash_map;
 } buffer_pool;
@@ -67,7 +67,7 @@ char *get(char *key){
     }
     if (file_index == -1){
         pthread_mutex_unlock(&mtx);
-        return "Key Does Not Exist";
+        return strdup("Key Does Not Exist");
         
     }
     char path[256];
@@ -86,7 +86,7 @@ char *get(char *key){
     found_key[size_of_key] = '\0';
     if (strcmp(found_key, key) != 0){
         pthread_mutex_unlock(&mtx);
-        return "Keys are not equal in DB";
+        return strdup("Keys are not equal in DB");
     }
     char *found_value;
     found_value = (char*) malloc((size_of_value + 1) * sizeof(char));
@@ -94,7 +94,7 @@ char *get(char *key){
     found_value[size_of_value] = '\0';
     if (strcmp(tombstone, found_value) == 0){
         pthread_mutex_unlock(&mtx);
-        return "Key Does Not Exist";
+        return strdup("Key Does Not Exist");
     }
     pthread_mutex_unlock(&mtx);
     free(found_key);
@@ -127,7 +127,6 @@ void boot_up_buffer_pool(){
 }
 char * read_from_buffer_pool(char *path){
     if (table_get_value(manager->page_table, path) == NULL){
-        //1. check the free_frame list for a free slot
         for (int i = 0; i < manager->capacity; i++){
             if (manager->free_frame[i] == 0){
                 manager->free_frame[i] = 1;
@@ -277,6 +276,8 @@ int set(char * key, char * value){
     int file_number;
     pthread_mutex_lock(&mtx);
     file_number = directory_buffer[current_fd_buffer_index]; 
+    //pthread_mutex_unlock(&mtx);
+    //thread onlock
     char path[256];
     snprintf(path, sizeof(path), "db/%d", file_number); 
     int key_length = strlen(key);
@@ -426,6 +427,7 @@ int construct_hash_map_from_directory(){
                 free(key);
                 free(value);
             }
+            //writer_thread_offset = j;
             close(fd);
             current_fd_buffer_index = i;
             
